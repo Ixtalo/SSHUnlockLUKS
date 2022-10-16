@@ -1,0 +1,21 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+paramiko = "*"
+python-dotenv = "*"
+
+[dev-packages]
+pre-commit = "*"
+pylint = "*"
+pytest = "*"
+pytest-sugar = "*"
+pytest-cov = "*"
+pytest-clarity = "*"
+pytest-icdiff = "*"
+
+[scripts]
+cov = "pipenv run pytest --cov= --cov-report=html --cov-report=xml --cov-report=term"
+check = "pre-commit run --all-files"
