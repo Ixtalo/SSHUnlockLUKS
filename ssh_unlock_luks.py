@@ -67,7 +67,7 @@ while not channel.send_ready():
     sleep(0.5)
 
 logging.info("sending passphrase string plus ENTER/newline ...")
-channel.send(b"%s\n" % os.getenv("SUL_LUKS_PASS"))
+channel.send(b"%s\n" % os.getenv("SUL_LUKS_PASS").encode())
 
 logging.info("waiting 3 seconds (grace time)...")
 sleep(3)
