@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 paramiko = "*"
 python-dotenv = "*"
+requests = "*"
 
 [dev-packages]
 pre-commit = "*"
