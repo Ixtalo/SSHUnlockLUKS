@@ -1,0 +1,13 @@
+# Dummy host that behaves like a LUKS-encrypted server waiting in dropbear-initramfs.
+# For trying out ssh_unlock_luks.py only; never use it for anything real.
+FROM debian:trixie-slim
+
+# dropbear-bin provides `dropbear` (the server) and `dropbearkey` (host key generation).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends dropbear-bin \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY entrypoint.sh fake-unlock.sh /usr/local/bin/
+RUN chmod 0755 /usr/local/bin/entrypoint.sh /usr/local/bin/fake-unlock.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

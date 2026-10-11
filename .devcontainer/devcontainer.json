@@ -1,0 +1,96 @@
+{
+  // Development on Linux with rootless podman, CPU only.
+  // VS Code setting required on the host: "dev.containers.dockerPath": "podman"
+  //
+  // Project-independent: everything specific lives in Dockerfile, post-create.sh,
+  // pyproject.toml and .vscode/settings.json. Copy this file as it is.
+  "name": "${localWorkspaceFolderBasename}",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  // Runs on the host before the container is created: bind-mount sources must exist,
+  // otherwise podman silently creates directories in their place
+  "initializeCommand": "mkdir -p \"$HOME/.cache/pip\" \"$HOME/.cache/pypoetry\" \"$HOME/.cache/huggingface\" \"$HOME/.cache/torch\" \"$HOME/.npm\" && touch -a \"$HOME/.gitconfig\"",
+  "runArgs": [
+    // Rootless podman: map the host user to 'vscode' (uid 1000) so bind-mounted files keep their owner
+    "--userns=keep-id:uid=1000,gid=1000",
+    // No privilege escalation inside the container (disables sudo; system packages belong in the Dockerfile)
+    "--security-opt=no-new-privileges",
+    // Unmask /proc so bubblewrap can mount a fresh procfs: required for the Claude Code
+    // Bash sandbox ("bwrap: Can't mount proc"). Only /proc, so /sys/firmware and friends
+    // stay masked. Rootless, so /proc/sys etc. remain unwritable for the host user anyway.
+    "--security-opt=unmask=/proc/*"
+  ],
+  // Reaps zombie processes of subprocess-spawning tools
+  "init": true,
+  // Node.js (LTS) with npm. The feature installs it owned by 'vscode', so global npm
+  // packages work without sudo; Debian's own nodejs package is Node 18 (end of life).
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
+    }
+  },
+  "containerUser": "vscode",
+  "remoteUser": "vscode",
+  "updateRemoteUserUID": false,
+  "mounts": [
+    // Download caches shared with the host and all other dev containers, so wheels and
+    // models are fetched only once. Mounted per directory instead of all of ~/.cache:
+    // ~/.cache also holds credentials (huggingface/token) and unrelated application data.
+    "source=${localEnv:HOME}/.cache/pip,target=/home/vscode/.cache/pip,type=bind",
+    "source=${localEnv:HOME}/.cache/pypoetry,target=/home/vscode/.cache/pypoetry,type=bind",
+    // Models for transformers/datasets/sentence-transformers (hub/ and token)
+    "source=${localEnv:HOME}/.cache/huggingface,target=/home/vscode/.cache/huggingface,type=bind",
+    // torch.hub checkpoints, torchvision pretrained weights, whisper models
+    "source=${localEnv:HOME}/.cache/torch,target=/home/vscode/.cache/torch,type=bind",
+    // npm uses ~/.npm on Linux, not ~/.cache
+    "source=${localEnv:HOME}/.npm,target=/home/vscode/.npm,type=bind",
+    // Shared Claude Code home: one login, the same user CLAUDE.md, settings and hooks in
+    // every project. Per-project state (sessions, todos) is keyed by cwd by Claude Code
+    // itself; project configuration belongs in ./.claude/ in the repository.
+    "source=${localEnv:HOME}/.claude,target=/home/vscode/.claude,type=bind",
+    // Git identity from the host (read-only)
+    "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,readonly",
+    // Container-local, not shared with the host: hook envs contain absolute
+    // interpreter paths and are not portable between host and container
+    "source=devcontainer-precommit-${devcontainerId},target=/home/vscode/.cache/pre-commit,type=volume"
+  ],
+  // Project-specific installation steps live in the script, not in this file
+  "postCreateCommand": "./.devcontainer/post-create.sh",
+  // Extensions start only after the dependencies are installed, so the Python extension
+  // finds a complete environment
+  "waitFor": "postCreateCommand",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "tamasfe.even-better-toml",
+        "anthropic.claude-code",
+        "Anthropic.claude-code",
+        "VizzleTF.geminicommit"
+      ],
+      // Project-specific settings (search/watcher excludes, test paths) belong in
+      // .vscode/settings.json in the repository
+      "settings": {
+        // The workspace also contains the host's ./.venv; pin the container interpreter
+        "python.defaultInterpreterPath": "/opt/venv/bin/python",
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+          }
+        },
+        "notebook.formatOnSave.enabled": true,
+        "files.watcherExclude": {
+          "**/.venv/**": true
+        },
+        "search.exclude": {
+          "**/.venv": true
+        }
+      }
+    }
+  }
+}

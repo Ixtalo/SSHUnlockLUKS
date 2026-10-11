@@ -1,0 +1,73 @@
+[project]
+name = "sshunlockluks"
+description = "Automatically unlock LUKS at boot via SSH, e.g., for dropbear-initramfs."
+dynamic = [
+    "license",
+]
+version = "1.7.0"
+readme = "README.md"
+authors = [
+    {name = "Ixtalo",email = "ixtalo@users.noreply.github.com"},
+]
+requires-python = '>=3.11,<4.0'
+dependencies = [
+    'paramiko',
+    'loguru>=0.7.3,<0.8.0',
+    'pydantic-settings>=2,<3',
+]
+
+[tool.poetry]
+license = "AGPL-3.0-only"
+package-mode = false
+requires-poetry = '>=2.2.1'
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+[dependency-groups]
+dev = [
+    'pre-commit',
+    'pytest',
+    'pytest-sugar',
+    'pytest-cov',
+    'pytest-clarity',
+    'pytest-icdiff',
+    'ruff>=0.17.0,<0.18.0',
+    "mypy (>=2.4.0,<3.0.0)",
+    "types-paramiko (>=5.0.0.20261006,<6.0.0.0)",
+]
+
+[build-system]
+requires = ['poetry-core>=2.0']
+build-backend = "poetry.core.masonry.api"
+
+[tool.mypy]
+plugins = ["pydantic.mypy"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "--cov=ssh_unlock_luks --cov-report=term-missing -m 'not integration'"
+markers = [
+    "integration: needs a container engine and the dummy host (dev/dummy-host); run with -m integration",
+]
+
+
+## https://docs.astral.sh/ruff/configuration/
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM", "D", "S", "BLE", "PTH", "RUF", "PT", "TRY"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/*" = ["D", "S101"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.ruff.format]
+line-ending = "lf"
